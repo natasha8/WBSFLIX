@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 from fuzzywuzzy import process
-import re
 from imdb import Cinemagoer
 
 links_df = pd.read_csv('links.csv')
@@ -51,17 +50,6 @@ movie_user_matrix = ratings_df.pivot_table(index='movieId', columns='userId', va
 movie_similarity = cosine_similarity(movie_user_matrix)
 movie_similarity_df = pd.DataFrame(movie_similarity, index=movie_user_matrix.index, columns=movie_user_matrix.index)
 
-# def get_similar_movies(movie_id, n):
-#     if movie_id not in movie_similarity_df.index:
-#         raise ValueError("Movie ID not found in the database.")
-#     similar_movies = movie_similarity_df[movie_id].sort_values(ascending=False)[1:n+1]
-#     similar_movies_df = movies_df[movies_df['movieId'].isin(similar_movies.index)].copy()
-#     similar_movies_df['similarity'] = similar_movies.values
-
-#     # Filter movies based on the year range
-#     top_movies = similar_movies_df[(similar_movies_df['year'] >= start_year) & (similar_movies_df['year'] <= end_year)]
-#     return top_movies.head(n)
-
 def get_similar_movies_by_title(title, n):
     
     closest_title = process.extractOne(title, movies_df['title'].values)[0]
@@ -90,7 +78,7 @@ user_similarity_df = pd.DataFrame(user_similarity, index=user_movie_matrix.index
 def get_recommendations_for_user(user_id, n):
 
     if user_id not in user_similarity_df.index:
-        raise ValueError("User not found")
+        return ("User not found")
 
     similar_users = user_similarity_df[user_id].sort_values(ascending=False)[1:]
 
@@ -148,7 +136,7 @@ st.components.v1.html(custom_html)
 # Title of your app
 
 
-# Sidebars for user input
+# Sidebars
 st.sidebar.title('Get Recommendations')
 option = st.sidebar.selectbox('Choose your recommendation type:', ['Top Movies', 'Similar Movies by Titles', 'User Recommendations','Tag-Based Movies'])
 
@@ -165,7 +153,7 @@ if option == 'Top Movies':
         movie_counter = 0
 
         for index, row in top_movies.iterrows():
-            # Every 5 movies, start a new row
+            # Every 2 movies, start a new row
             if movie_counter % 2 == 0:
                 cols = st.columns(2)  # Create 5 columns
                 current_col_index = 0
