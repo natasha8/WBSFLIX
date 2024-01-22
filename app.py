@@ -131,11 +131,6 @@ st.title('GO WBS FLIX')
 # Display the custom HTML
 st.components.v1.html(custom_html)
 
-#st.image('https://wallpaperaccess.com/full/3658597.jpg')
-
-# Title of your app
-
-
 # Sidebars
 st.sidebar.title('Get Recommendations')
 option = st.sidebar.selectbox('Choose your recommendation type:', ['Top Movies', 'Similar Movies by Titles', 'User Recommendations','Tag-Based Movies'])
