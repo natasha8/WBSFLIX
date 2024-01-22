@@ -126,7 +126,7 @@ st.title('Movie Recommendation System')
 
 # Sidebars for user input
 st.sidebar.title('Get Recommendations')
-option = st.sidebar.selectbox('Choose your recommendation type:', ['Top Movies', 'Similar Movies by Titles','Similar Movies by Id', 'User Recommendations','Mood-Based Movies','Movies by Year'])
+option = st.sidebar.selectbox('Choose your recommendation type:', ['Top Movies', 'Similar Movies by Titles', 'User Recommendations','Mood-Based Movies')
 
 if option == 'Top Movies':
     n = st.sidebar.slider('Number of top movies to display:', 1, 20, 5)

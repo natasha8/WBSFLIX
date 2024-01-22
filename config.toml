@@ -1,0 +1,8 @@
+# .streamlit/config.toml
+
+[theme]
+primaryColor = "#FF0000"  # Red color for primary elements
+backgroundColor = "#000000"  # Black background
+secondaryBackgroundColor = "#262730"  # A slightly different shade of black for secondary elements
+textColor = "#FF0000"  # Red color for text
+font = "sans serif"
