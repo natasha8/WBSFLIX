@@ -1,4 +1,4 @@
-# 🎥🍿[Go WBSFLIX Movie Recommendation System](https://gowbsflix.streamlit.app/) 🎥🍿
+# 👉[Go WBSFLIX Movie Recommendation System](https://gowbsflix.streamlit.app/) 🎥🍿
 
 Go WBSFLIX is a movie recommendation system built with Streamlit, Pandas, scikit-learn, and the IMDbPY package. It provides various types of movie recommendations based on user preferences, movie ratings, similarity, and tags.
 
