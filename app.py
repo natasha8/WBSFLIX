@@ -93,7 +93,7 @@ def get_movies_by_mood(mood, n):
     # Merge with movies data to get movie details
     mood_movies_details = mood_movies.merge(movies_df, on='movieId').drop_duplicates('movieId')
     
-    return mood_movies_details['title','genre','tag'].head(n)
+    return mood_movies_details['title'].head(n)
 
 
 st.set_page_config(layout="wide")
