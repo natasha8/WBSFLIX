@@ -34,16 +34,16 @@ movie_user_matrix = ratings_df.pivot_table(index='movieId', columns='userId', va
 movie_similarity = cosine_similarity(movie_user_matrix)
 movie_similarity_df = pd.DataFrame(movie_similarity, index=movie_user_matrix.index, columns=movie_user_matrix.index)
 
-def get_similar_movies(movie_id, n):
-    if movie_id not in movie_similarity_df.index:
-        raise ValueError("Movie ID not found in the database.")
-    similar_movies = movie_similarity_df[movie_id].sort_values(ascending=False)[1:n+1]
-    similar_movies_df = movies_df[movies_df['movieId'].isin(similar_movies.index)].copy()
-    similar_movies_df['similarity'] = similar_movies.values
+# def get_similar_movies(movie_id, n):
+#     if movie_id not in movie_similarity_df.index:
+#         raise ValueError("Movie ID not found in the database.")
+#     similar_movies = movie_similarity_df[movie_id].sort_values(ascending=False)[1:n+1]
+#     similar_movies_df = movies_df[movies_df['movieId'].isin(similar_movies.index)].copy()
+#     similar_movies_df['similarity'] = similar_movies.values
 
-    # Filter movies based on the year range
-    top_movies = similar_movies_df[(similar_movies_df['year'] >= start_year) & (similar_movies_df['year'] <= end_year)]
-    return top_movies.head(n)
+#     # Filter movies based on the year range
+#     top_movies = similar_movies_df[(similar_movies_df['year'] >= start_year) & (similar_movies_df['year'] <= end_year)]
+#     return top_movies.head(n)
 
 def get_similar_movies_by_title(title, n):
     
@@ -166,7 +166,7 @@ elif option == 'Similar Movies by Titles':
                 with st.container():
                     st.markdown(f"### {row['title']}")
                     st.markdown(f"**Year**: {int(row['year'])}")  # Correctly formatted year
-                    st.markdown(f"**Similarity**: {row['similarity']:.2f}")
+                    #st.markdown(f"**Similarity**: {row['similarity']:.2f}")
                     st.write("----")
         except ValueError as e:
             st.error(e)
