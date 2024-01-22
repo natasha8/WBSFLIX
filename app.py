@@ -93,22 +93,33 @@ def get_movies_by_mood(mood, n):
     # Merge with movies data to get movie details
     mood_movies_details = mood_movies.merge(movies_df, on='movieId').drop_duplicates('movieId')
     
-    return mood_movies_details.head(n)
+    return mood_movies_details['title','genre','tag'].head(n)
 
-def get_movies_by_year(year, n):
-    
-    movie_ratings = ratings_df.groupby('movieId').agg({'rating': ['mean', 'count']})
-    movie_ratings.columns = ['average_rating', 'rating_count']
-    
-    filtered_movies = movie_ratings[movie_ratings['rating_count'] > 2]
 
-    movies_with_ratings = movies_df.merge(filtered_movies, left_on='movieId', right_on='movieId', how='left')
+st.set_page_config(layout="wide")
+# Custom HTML/CSS for the banner
+custom_html = """
+<div class="banner">
+    <img src="https://wallpaperaccess.com/full/3658597.jpg" alt="Banner Image">
+</div>
+<style>
+    .banner {
+        width: 160%;
+        height: 200px;
+        overflow: hidden;
+    }
+    .banner img {
+        width: 100%;
+        object-fit: cover;
+        object-position: center;
 
-    year_movies = movies_with_ratings[movies_with_ratings['year'] == year].sort_values(by='average_rating', ascending=False)
+    }
+</style>
+"""
+# Display the custom HTML
+st.components.v1.html(custom_html)
 
-    return year_movies.head(n)[['title', 'genres']]
-
-st.image('https://wallpaperaccess.com/full/3658597.jpg')
+#st.image('https://wallpaperaccess.com/full/3658597.jpg')
 
 # Title of your app
 st.title('Movie Recommendation System')
@@ -123,15 +134,6 @@ if option == 'Top Movies':
         top_movies = get_top_n_movies(n)
         st.write(top_movies)
 
-elif option == 'Similar Movies by Id':
-    movie_id = st.sidebar.number_input('Enter Movie ID:', min_value=1)
-    n = st.sidebar.slider('Number of similar movies to display:', 1, 20, 5)
-    if st.sidebar.button('Show Similar Movies'):
-        try:
-            similar_movies = get_similar_movies(movie_id, n)
-            st.write(similar_movies)
-        except ValueError as e:
-            st.error(e)
 
 elif option == 'Similar Movies by Titles':
     title = st.sidebar.text_input('Enter Movie Title:')
@@ -159,12 +161,3 @@ elif option == 'Mood-Based Movies':
     if st.sidebar.button('Show Movies'):
         mood_movies = get_movies_by_mood(mood, n)
         st.write(mood_movies)
-
-elif option == 'Movies by Year':
-    year = st.sidebar.number_input('Enter Year:', min_value=1900, max_value=2024, value=1999)
-    n = st.sidebar.slider('Number of movies to display:', 1, 20, 5)
-    if st.sidebar.button('Show Movies'):
-        year_movies_info = get_movies_by_year(year, n)
-    for title, genres in year_movies_info:
-        st.write(f"{title} - Genres: {genres}")
-
