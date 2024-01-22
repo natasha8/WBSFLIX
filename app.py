@@ -85,10 +85,10 @@ def get_recommendations_for_user(user_id, n):
 
     recommended_movies = recommended_movies[~recommended_movies.index.isin(already_rated[already_rated].index)]
 
-    recommended_movies_df = movies_df[movies_df["movieId"].isin(recommended_movies.head(n).index)]
-    recommended_movies_df["estimated_rating"] = recommended_movies.head(n).values
+    recommended_movies_df = movies_df[movies_df["movieId"].isin(recommended_movies.head(n).index)].copy()
+    recommended_movies_df.loc[:, "estimated_rating"] = recommended_movies.head(n)
 
-    return recommended_movies_df.head(n).values
+    return recommended_movies_df.head(n)
 
 def get_movies_by_mood(mood, n):
     # Filter tags data for the given mood
