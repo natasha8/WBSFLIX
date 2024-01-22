@@ -3,12 +3,29 @@ import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 from fuzzywuzzy import process
 import re
-
+from imdb import Cinemagoer
 
 links_df = pd.read_csv('links.csv')
 movies_df = pd.read_csv('movies.csv')
 ratings_df = pd.read_csv('ratings.csv')
 tags_df = pd.read_csv('tags.csv')
+
+ia = Cinemagoer()
+# function for get poster
+def get_movie_poster(title):
+    try:
+        search_results = ia.search_movie(title)
+        if search_results:
+            movie_id = search_results[0].movieID
+            #print('movie_id',movie_id)
+            movie = ia.get_movie(movie_id)
+            #print('movie', movie)
+            if 'cover url' in movie:
+                return movie['cover url']
+        return None
+    except Exception as e:
+        print(f"No Poster for {title}: {e}")
+        return None
 
 # Filter by year
 def filter_movies_by_year(movies_df, start_year, end_year):
@@ -18,7 +35,7 @@ def filter_movies_by_year(movies_df, start_year, end_year):
 def get_top_n_movies(n, start_year, end_year):
     movie_ratings = ratings_df.groupby('movieId').agg({'rating': ['mean', 'count']})
     movie_ratings.columns = ['average_rating', 'rating_count']
-    filtered_movies = movie_ratings[movie_ratings['rating_count'] > 2]
+    filtered_movies = movie_ratings[movie_ratings['rating_count'] >= 2]
     
     sorted_movies = filtered_movies.sort_values(by=['average_rating', 'rating_count'], ascending=[False, False])
     
@@ -63,7 +80,7 @@ def get_similar_movies_by_title(title, n):
     
     if start_year is not None and end_year is not None:
         similar_movies = filter_movies_by_year(similar_movies, start_year, end_year)
-    return similar_movies[['title', 'year', 'similarity']].head(n)
+    return similar_movies.head(n)
 
 # User-Based Collaborative Filtering
 user_movie_matrix = ratings_df.pivot_table(index='userId', columns='movieId', values='rating').fillna(0)
@@ -145,13 +162,24 @@ if option == 'Top Movies':
     n = st.sidebar.slider('Number of top movies to display:', 1, 20, 5)
     if st.sidebar.button('Show Top Movies'):
         top_movies = get_top_n_movies(n, start_year, end_year)
-        for _, row in top_movies.iterrows():
-            with st.container():
+        movie_counter = 0
+
+        for index, row in top_movies.iterrows():
+            # Every 5 movies, start a new row
+            if movie_counter % 2 == 0:
+                cols = st.columns(2)  # Create 5 columns
+                current_col_index = 0
+
+            with cols[current_col_index]:
                 st.markdown(f"### {row['title']}")
                 st.markdown(f"**Year**: {int(row['year'])}")
                 st.markdown(f"**Genres**: {row['genres']}")
-                st.write("----")  # Horizontal line for visual separation
-
+                poster_url = get_movie_poster(row['title'])
+                if poster_url:
+                    st.image(poster_url, width=200)
+                st.write("----")
+            current_col_index = (current_col_index + 1) % 5
+            movie_counter += 1
 
 elif option == 'Similar Movies by Titles':
     st.title('Top Movies by Titles')
@@ -165,18 +193,30 @@ elif option == 'Similar Movies by Titles':
     if st.sidebar.button('Show Similar Movies'):
         try:
             similar_movies = get_similar_movies_by_title(title, n)
-            for _, row in similar_movies.iterrows():
-                with st.container():
+            movie_counter = 0
+            for index, row in similar_movies.iterrows():
+                if movie_counter % 2 == 0:
+                    cols = st.columns(2)  # Create 2 columns
+                    current_col_index = 0
+
+                with cols[current_col_index]:
                     st.markdown(f"### {row['title']}")
-                    st.markdown(f"**Year**: {int(row['year'])}")  # Correctly formatted year
-                    #st.markdown(f"**Similarity**: {row['similarity']:.2f}")
+                    st.markdown(f"**Year**: {int(row['year'])}")
+                    st.markdown(f"**Genres**: {row['genres']}")
+                    poster_url = get_movie_poster(row['title'])
+                    if poster_url:
+                        st.image(poster_url, width=200)
                     st.write("----")
+
+                current_col_index = (current_col_index + 1) % 2
+                movie_counter += 1
         except ValueError as e:
             st.error(e)
 
 
+
 elif option == 'User Recommendations':
-    st.title('Top Movies by user')
+    st.title('Top Movies by User')
     user_id = st.sidebar.number_input('Enter User ID:', min_value=1)
     start_year, end_year = st.sidebar.select_slider(
         'Select a range of years',
@@ -187,17 +227,28 @@ elif option == 'User Recommendations':
     if st.sidebar.button('Show Recommendations'):
         try:
             user_recommendations = get_recommendations_for_user(user_id, n)
-            for _, row in user_recommendations.iterrows():
-                with st.container():
+            movie_counter = 0
+            for index, row in user_recommendations.iterrows():
+                if movie_counter % 2 == 0:
+                    cols = st.columns(2)
+                    current_col_index = 0
+
+                with cols[current_col_index]:
                     st.markdown(f"### {row['title']}")
-                    st.markdown(f"**Year**: {int(row['year'])}")  # Correctly formatted year
+                    st.markdown(f"**Year**: {int(row['year'])}")
                     st.markdown(f"**Genres**: {row['genres']}")
+                    poster_url = get_movie_poster(row['title'])
+                    if poster_url:
+                        st.image(poster_url, width=200)
                     st.write("----")
+
+                current_col_index = (current_col_index + 1) % 2
+                movie_counter += 1
         except ValueError as e:
             st.error(e)
 
 elif option == 'Tag-Based Movies':
-    st.title('Top Movies by tag')
+    st.title('Top Movies by Tag')
     mood = st.sidebar.text_input('Enter Mood:')
     start_year, end_year = st.sidebar.select_slider(
         'Select a range of years',
@@ -208,11 +259,23 @@ elif option == 'Tag-Based Movies':
     if st.sidebar.button('Show Movies'):
         try:
             mood_movies = get_movies_by_mood(mood, n)
-            for _, row in mood_movies.iterrows():
-                with st.container():
+            movie_counter = 0
+            for index, row in mood_movies.iterrows():
+                if movie_counter % 2 == 0:
+                    cols = st.columns(2)
+                    current_col_index = 0
+
+                with cols[current_col_index]:
                     st.markdown(f"### {row['title']}")
-                    st.markdown(f"**Year**: {int(row['year'])}")  # Correctly formatted year
+                    st.markdown(f"**Year**: {int(row['year'])}")
                     st.markdown(f"**Mood**: {row['tag']}")
+                    poster_url = get_movie_poster(row['title'])
+                    if poster_url:
+                        st.image(poster_url, width=200)
                     st.write("----")
+
+                current_col_index = (current_col_index + 1) % 2
+                movie_counter += 1
         except ValueError as e:
             st.error(e)
+
