@@ -88,7 +88,7 @@ def get_recommendations_for_user(user_id, n):
     recommended_movies_df = movies_df[movies_df["movieId"].isin(recommended_movies.head(n).index)]
     recommended_movies_df["estimated_rating"] = recommended_movies.head(n).values
 
-    return recommended_movies_df.head(n)
+    return recommended_movies_df.head(n).values
 
 def get_movies_by_mood(mood, n):
     # Filter tags data for the given mood
@@ -122,19 +122,21 @@ custom_html = """
     }
 </style>
 """
+st.title('GO WBS FLIX')
 # Display the custom HTML
 st.components.v1.html(custom_html)
 
 #st.image('https://wallpaperaccess.com/full/3658597.jpg')
 
 # Title of your app
-st.title('Movie Recommendation System')
+
 
 # Sidebars for user input
 st.sidebar.title('Get Recommendations')
 option = st.sidebar.selectbox('Choose your recommendation type:', ['Top Movies', 'Similar Movies by Titles', 'User Recommendations','Tag-Based Movies'])
 
 if option == 'Top Movies':
+    st.title('Top Movies')
     start_year, end_year = st.sidebar.select_slider(
         'Select a range of years',
         options=list(range(1960, 2024)), 
@@ -152,6 +154,7 @@ if option == 'Top Movies':
 
 
 elif option == 'Similar Movies by Titles':
+    st.title('Top Movies by Titles')
     title = st.sidebar.text_input('Enter Movie Title:')
     start_year, end_year = st.sidebar.select_slider(
         'Select a range of years',
@@ -173,6 +176,7 @@ elif option == 'Similar Movies by Titles':
 
 
 elif option == 'User Recommendations':
+    st.title('Top Movies by user')
     user_id = st.sidebar.number_input('Enter User ID:', min_value=1)
     start_year, end_year = st.sidebar.select_slider(
         'Select a range of years',
@@ -193,6 +197,7 @@ elif option == 'User Recommendations':
             st.error(e)
 
 elif option == 'Tag-Based Movies':
+    st.title('Top Movies by tag')
     mood = st.sidebar.text_input('Enter Mood:')
     start_year, end_year = st.sidebar.select_slider(
         'Select a range of years',
