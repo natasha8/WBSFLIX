@@ -59,7 +59,7 @@ def get_recommendations_for_user(user_id, n):
     recommended_movies_df = movies_df[movies_df["movieId"].isin(recommended_movies.head(n).index)]
     recommended_movies_df["estimated_rating"] = recommended_movies.head(n).values
 
-    return recommended_movies_df
+    return recommended_movies_df['title']
 
 def get_similar_movies_by_title(title, n):
     # Find the closest match to the given title
@@ -106,7 +106,7 @@ def get_movies_by_year(year, n):
 
     year_movies = movies_with_ratings[movies_with_ratings['year'] == year].sort_values(by='average_rating', ascending=False)
 
-    return year_movies.head(n)[['title', 'genres']].values.tolist()
+    return year_movies.head(n)[['title', 'genres']]
 
 st.image('https://wallpaperaccess.com/full/3658597.jpg')
 
