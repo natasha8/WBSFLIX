@@ -102,7 +102,7 @@ def get_movies_by_mood(mood, n):
     return mood_movies_details.head(n)
 
 
-st.set_page_config(layout="wide")
+st.set_page_config(page_title="Go WBSFLIX",page_icon="🍿",layout="wide")
 # Custom HTML/CSS for the banner
 custom_html = """
 <div class="banner">
