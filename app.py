@@ -10,17 +10,23 @@ movies_df = pd.read_csv('movies.csv')
 ratings_df = pd.read_csv('ratings.csv')
 tags_df = pd.read_csv('tags.csv')
 
+# Filter by year
+def filter_movies_by_year(movies_df, start_year, end_year):
+    return movies_df[(movies_df['year'] >= start_year) & (movies_df['year'] <= end_year)]
+
 # Popularity-Based Recommender
-def get_top_n_movies(n):
+def get_top_n_movies(n, start_year, end_year):
     movie_ratings = ratings_df.groupby('movieId').agg({'rating': ['mean', 'count']})
     movie_ratings.columns = ['average_rating', 'rating_count']
     filtered_movies = movie_ratings[movie_ratings['rating_count'] > 2]
     
-    # Sorting by average_rating first, then by rating_count
     sorted_movies = filtered_movies.sort_values(by=['average_rating', 'rating_count'], ascending=[False, False])
     
     top_movies = sorted_movies.merge(movies_df, on='movieId').reset_index(drop=True)
-    return top_movies['title'].head(n)
+    
+    top_movies = filter_movies_by_year(top_movies, start_year, end_year)
+    return top_movies[['title', 'year', 'genres']].head(n)
+
 
 
 # Item-Based Collaborative Filtering
@@ -34,7 +40,30 @@ def get_similar_movies(movie_id, n):
     similar_movies = movie_similarity_df[movie_id].sort_values(ascending=False)[1:n+1]
     similar_movies_df = movies_df[movies_df['movieId'].isin(similar_movies.index)].copy()
     similar_movies_df['similarity'] = similar_movies.values
-    return similar_movies_df['title']
+
+    # Filter movies based on the year range
+    top_movies = similar_movies_df[(similar_movies_df['year'] >= start_year) & (similar_movies_df['year'] <= end_year)]
+    return top_movies.head(n)
+
+def get_similar_movies_by_title(title, n):
+    
+    closest_title = process.extractOne(title, movies_df['title'].values)[0]
+   
+    movie_id = movies_df[movies_df['title'] == closest_title]['movieId'].iloc[0]
+   
+    similar_scores = movie_similarity_df.loc[movie_id]
+
+    top_similar_scores = similar_scores.sort_values(ascending=False)[1:n+1]
+    
+    top_similar_movie_ids = top_similar_scores.index
+    
+    similar_movies = movies_df[movies_df['movieId'].isin(top_similar_movie_ids)]
+    
+    similar_movies = similar_movies.assign(similarity=similar_movies['movieId'].map(top_similar_scores))
+    
+    if start_year is not None and end_year is not None:
+        similar_movies = filter_movies_by_year(similar_movies, start_year, end_year)
+    return similar_movies[['title', 'year', 'similarity']].head(n)
 
 # User-Based Collaborative Filtering
 user_movie_matrix = ratings_df.pivot_table(index='userId', columns='movieId', values='rating').fillna(0)
@@ -59,32 +88,7 @@ def get_recommendations_for_user(user_id, n):
     recommended_movies_df = movies_df[movies_df["movieId"].isin(recommended_movies.head(n).index)]
     recommended_movies_df["estimated_rating"] = recommended_movies.head(n).values
 
-    return recommended_movies_df['title']
-
-def get_similar_movies_by_title(title, n):
-    # Find the closest match to the given title
-    closest_title = process.extractOne(title, movies_df['title'].values)[0]
-
-    # Get the movieId for the closest title
-    movie_id = movies_df[movies_df['title'] == closest_title]['movieId'].iloc[0]
-
-    # Get similarity scores for the movieId
-    similar_scores = movie_similarity_df.loc[movie_id]
-
-    # Sort the scores in descending order and select top n scores
-    top_similar_scores = similar_scores.sort_values(ascending=False)[1:n+1]
-
-    # Get movie IDs for the top similar movies
-    top_similar_movie_ids = top_similar_scores.index
-
-    # Retrieve movie titles for these IDs
-    similar_movies = movies_df[movies_df['movieId'].isin(top_similar_movie_ids)]
-
-    # Add similarity scores
-    similar_movies['similarity'] = similar_movies['movieId'].apply(lambda x: top_similar_scores[x])
-
-    # Return only the titles and similarity scores
-    return similar_movies[['title', 'similarity']]
+    return recommended_movies_df.head(n)
 
 def get_movies_by_mood(mood, n):
     # Filter tags data for the given mood
@@ -93,7 +97,9 @@ def get_movies_by_mood(mood, n):
     # Merge with movies data to get movie details
     mood_movies_details = mood_movies.merge(movies_df, on='movieId').drop_duplicates('movieId')
     
-    return mood_movies_details['title'].head(n)
+    if start_year is not None and end_year is not None:
+        mood_movies_details = filter_movies_by_year(mood_movies_details, start_year, end_year)
+    return mood_movies_details.head(n)
 
 
 st.set_page_config(layout="wide")
@@ -126,38 +132,82 @@ st.title('Movie Recommendation System')
 
 # Sidebars for user input
 st.sidebar.title('Get Recommendations')
-option = st.sidebar.selectbox('Choose your recommendation type:', ['Top Movies', 'Similar Movies by Titles', 'User Recommendations','Mood-Based Movies'])
+option = st.sidebar.selectbox('Choose your recommendation type:', ['Top Movies', 'Similar Movies by Titles', 'User Recommendations','Tag-Based Movies'])
 
 if option == 'Top Movies':
+    start_year, end_year = st.sidebar.select_slider(
+        'Select a range of years',
+        options=list(range(1960, 2024)), 
+        value=(1990, 2010)  
+    )
     n = st.sidebar.slider('Number of top movies to display:', 1, 20, 5)
     if st.sidebar.button('Show Top Movies'):
-        top_movies = get_top_n_movies(n)
-        st.write(top_movies)
+        top_movies = get_top_n_movies(n, start_year, end_year)
+        for _, row in top_movies.iterrows():
+            with st.container():
+                st.markdown(f"### {row['title']}")
+                st.markdown(f"**Year**: {int(row['year'])}")
+                st.markdown(f"**Genres**: {row['genres']}")
+                st.write("----")  # Horizontal line for visual separation
 
 
 elif option == 'Similar Movies by Titles':
     title = st.sidebar.text_input('Enter Movie Title:')
+    start_year, end_year = st.sidebar.select_slider(
+        'Select a range of years',
+        options=list(range(1960, 2024)), 
+        value=(1990, 2010)  
+    )
     n = st.sidebar.slider('Number of similar movies to display:', 1, 20, 5)
     if st.sidebar.button('Show Similar Movies'):
         try:
             similar_movies = get_similar_movies_by_title(title, n)
-            st.write(similar_movies['title'])
+            for _, row in similar_movies.iterrows():
+                with st.container():
+                    st.markdown(f"### {row['title']}")
+                    st.markdown(f"**Year**: {int(row['year'])}")  # Correctly formatted year
+                    st.markdown(f"**Similarity**: {row['similarity']:.2f}")
+                    st.write("----")
         except ValueError as e:
             st.error(e)
 
+
 elif option == 'User Recommendations':
     user_id = st.sidebar.number_input('Enter User ID:', min_value=1)
+    start_year, end_year = st.sidebar.select_slider(
+        'Select a range of years',
+        options=list(range(1960, 2024)), 
+        value=(1990, 2010)  
+    )
     n = st.sidebar.slider('Number of movies to recommend:', 1, 20, 5)
     if st.sidebar.button('Show Recommendations'):
         try:
             user_recommendations = get_recommendations_for_user(user_id, n)
-            st.write(user_recommendations)
+            for _, row in user_recommendations.iterrows():
+                with st.container():
+                    st.markdown(f"### {row['title']}")
+                    st.markdown(f"**Year**: {int(row['year'])}")  # Correctly formatted year
+                    st.markdown(f"**Genres**: {row['genres']}")
+                    st.write("----")
         except ValueError as e:
             st.error(e)
 
-elif option == 'Mood-Based Movies':
+elif option == 'Tag-Based Movies':
     mood = st.sidebar.text_input('Enter Mood:')
+    start_year, end_year = st.sidebar.select_slider(
+        'Select a range of years',
+        options=list(range(1960, 2024)), 
+        value=(1990, 2010)  
+    )
     n = st.sidebar.slider('Number of mood-based movies to display:', 1, 20, 5)
     if st.sidebar.button('Show Movies'):
-        mood_movies = get_movies_by_mood(mood, n)
-        st.write(mood_movies)
+        try:
+            mood_movies = get_movies_by_mood(mood, n)
+            for _, row in mood_movies.iterrows():
+                with st.container():
+                    st.markdown(f"### {row['title']}")
+                    st.markdown(f"**Year**: {int(row['year'])}")  # Correctly formatted year
+                    st.markdown(f"**Mood**: {row['tag']}")
+                    st.write("----")
+        except ValueError as e:
+            st.error(e)
