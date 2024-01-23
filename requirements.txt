@@ -3,5 +3,5 @@ scikit-learn
 pandas
 fuzzywuzzy
 levenshtein
-imdb
+cinemagoer
 time
