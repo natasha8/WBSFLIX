@@ -1,9 +1,9 @@
-import streamlit as st
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 from fuzzywuzzy import process
-import re
-from imdb import Cinemagoer
+from imdb import Cinemagoer, IMDbDataAccessError
+import streamlit as st
+import time
 
 links_df = pd.read_csv('links.csv')
 movies_df = pd.read_csv('movies.csv')
@@ -11,21 +11,37 @@ ratings_df = pd.read_csv('ratings.csv')
 tags_df = pd.read_csv('tags.csv')
 
 ia = Cinemagoer()
-# function for get poster
-def get_movie_poster(title):
-    try:
-        search_results = ia.search_movie(title)
-        if search_results:
-            movie_id = search_results[0].movieID
-            #print('movie_id',movie_id)
-            movie = ia.get_movie(movie_id)
-            #print('movie', movie)
-            if 'cover url' in movie:
-                return movie['cover url']
-        return None
-    except Exception as e:
-        print(f"No Poster for {title}: {e}")
-        return None
+
+def get_movie_poster(title, max_retries=3):
+    retry_count = 0
+    backoff_factor = 1  # seconds
+
+    while retry_count < max_retries:
+        try:
+            search_results = ia.search_movie(title)
+            if search_results:
+                movie_id = search_results[0].movieID
+                movie = ia.get_movie(movie_id)
+                if 'cover url' in movie:
+                    return movie['cover url']
+            return None
+
+        except IMDbDataAccessError as e:
+            if 'timeout' in str(e).lower():
+                print(f"Timeout occurred for {title}, retrying... (Attempt {retry_count + 1} of {max_retries})")
+                time.sleep(backoff_factor * (2 ** retry_count))  # Exponential backoff
+                retry_count += 1
+            else:
+                print(f"An IMDb data access error occurred for {title}: {e}")
+                return None
+
+        except Exception as e:
+            print(f"An error occurred while fetching poster for {title}: {e}")
+            return None
+
+    print(f"Maximum retries reached for {title}. No poster available.")
+    return None
+
 
 # Filter by year
 def filter_movies_by_year(movies_df, start_year, end_year):
@@ -108,7 +124,6 @@ def get_recommendations_for_user(user_id, n):
     return recommended_movies_df.head(n)
 
 def get_movies_by_mood(mood, n):
-    # Filter tags data for the given mood
     mood_movies = tags_df[tags_df['tag'].str.contains(mood, case=False, na=False)]
     
     # Merge with movies data to get movie details
@@ -142,11 +157,6 @@ custom_html = """
 st.title('GO WBS FLIX')
 # Display the custom HTML
 st.components.v1.html(custom_html)
-
-#st.image('https://wallpaperaccess.com/full/3658597.jpg')
-
-# Title of your app
-
 
 # Sidebars for user input
 st.sidebar.title('Get Recommendations')
